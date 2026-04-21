@@ -1,8 +1,8 @@
-# 🤖 JARVIS V3 — Gemini Live + ElevenLabs
+# 🤖 JARVIS V3 — Gemini Live 
 
 Ein persönlicher KI-Sprachassistent mit echter Sprach-Konversation.
 
-**Mic → Gemini Live → Text → ElevenLabs TTS → Speaker**
+**Mic → Gemini Live → Speaker**
 
 ## ⚡ Quick Start
 
@@ -21,7 +21,6 @@ http://localhost:8340
 ## 🔑 API-Keys
 
 1. **Gemini**: https://aistudio.google.com/app/apikey (kostenlos)
-2. **ElevenLabs**: https://elevenlabs.io/profile (10k chars/Monat gratis)
 
 ## 💬 Befehle
 
@@ -50,14 +49,12 @@ jarvis-voice-assistant/
 │   └── style.css
 └── scripts/
     ├── clap-trigger.py
-    └── launch-session.ps1
 ```
 
 ## 🎯 Features
 
 ✅ Live Voice Input (PCM 16kHz)
 ✅ Gemini Live Conversation
-✅ ElevenLabs Streaming TTS
 ✅ Browser Control (Google Search, URLs)
 ✅ Screenshot Analysis
 ✅ Weather + Tasks
@@ -66,7 +63,6 @@ jarvis-voice-assistant/
 ## 💰 Kosten
 
 - Gemini API: **Kostenlos** (60 req/min)
-- ElevenLabs: **Kostenlos** (10k chars/monat)
 - **Total: €0,00/Monat**
 
 ## 🔧 Konfiguration
@@ -76,18 +72,11 @@ In `config.json`:
 ```json
 {
   "gemini_api_key": "...",
-  "elevenlabs_api_key": "...",
-  "elevenlabs_voice_id": "rDmv3mOhK6TnhYWckFaD",
   "user_name": "Emil",
   "user_address": "Sir",
   "city": "Hamburg"
 }
 ```
-
-ElevenLabs Voice IDs:
-- `rDmv3mOhK6TnhYWckFaD` - Felix (deutsch, präzise)
-- `EXAVITQu4vr4xnSDxMaL` - Bella (weiblich, natürlich)
-- `21m00Tcm4TlvDq8ikWAM` - Rachel (englisch)
 
 ## 👏 Mit Doppelklatschen starten
 
@@ -109,16 +98,24 @@ Autostart einrichten:
 | Problem | Lösung |
 |---------|--------|
 | Gemini API Error | API Key prüfen + neu erstellen |
-| Kein Audio | ElevenLabs Key überprüfen, Chrome Sound-Einstellungen |
 | Mikrofon geht nicht | `chrome://settings/content/microphone` → "Zulassen" |
 | Port 8340 belegt | Andere App beenden oder `set JARVIS_PORT=8341` |
 
 ## 📖 Mehr Infos
 
 - Gemini Docs: https://ai.google.dev
-- ElevenLabs: https://elevenlabs.io
 - Playwright: https://playwright.dev
 
 ---
 
 **Viel Spaß mit Jarvis! 🎉**
+
+
+
+## Credits
+
+Built by [Julian](https://skool.com/ki-automatisierung) with [Claude Code](https://claude.ai/code).
+
+Inspired by Iron Man's J.A.R.V.I.S. — *"At your service, Sir."*
+
+---
