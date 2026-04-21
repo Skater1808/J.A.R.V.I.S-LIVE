@@ -1,0 +1,135 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: #07080f;
+    color: #d0d8e8;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#app {
+    text-align: center;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
+#header {
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: #2a5080;
+    margin-bottom: 40px;
+    font-weight: 500;
+}
+
+#orb-container {
+    cursor: pointer;
+    margin-bottom: 32px;
+    padding: 20px;
+}
+
+#orb {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    transition: all 0.4s ease;
+    position: relative;
+}
+
+/* Idle — deep blue */
+#orb.idle {
+    background: radial-gradient(circle at 38% 35%, #1e3d6e, #0a1828);
+    box-shadow:
+        0 0 40px rgba(30, 80, 160, 0.25),
+        0 0 80px rgba(30, 80, 160, 0.08);
+}
+
+/* Listening — bright blue pulse */
+#orb.listening {
+    background: radial-gradient(circle at 38% 35%, #3a80d4, #1a3a6e);
+    box-shadow:
+        0 0 60px rgba(58, 128, 212, 0.55),
+        0 0 120px rgba(58, 128, 212, 0.18);
+    animation: pulse-listen 1.6s ease-in-out infinite;
+}
+
+/* Speaking (Jarvis) — green */
+#orb.speaking {
+    background: radial-gradient(circle at 38% 35%, #22d468, #0e7035);
+    box-shadow:
+        0 0 60px rgba(34, 212, 104, 0.6),
+        0 0 120px rgba(34, 212, 104, 0.18);
+    animation: pulse-speak 0.5s ease-in-out infinite;
+}
+
+/* Thinking — amber */
+#orb.thinking {
+    background: radial-gradient(circle at 38% 35%, #e0a820, #7a5a10);
+    box-shadow:
+        0 0 60px rgba(224, 168, 32, 0.5),
+        0 0 120px rgba(224, 168, 32, 0.14);
+    animation: pulse-think 0.9s ease-in-out infinite;
+}
+
+@keyframes pulse-listen {
+    0%, 100% { transform: scale(1);    opacity: 1;    }
+    50%       { transform: scale(1.06); opacity: 0.92; }
+}
+@keyframes pulse-speak  {
+    0%, 100% { transform: scale(1);    }
+    50%       { transform: scale(1.12); }
+}
+@keyframes pulse-think  {
+    0%, 100% { transform: scale(1);    }
+    50%       { transform: scale(1.08); }
+}
+
+#status {
+    font-size: 13px;
+    color: #4a6080;
+    min-height: 18px;
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+}
+
+#transcript {
+    max-width: 560px;
+    width: 90vw;
+    text-align: left;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 0 4px;
+    scrollbar-width: thin;
+    scrollbar-color: #1a3050 transparent;
+}
+#transcript::-webkit-scrollbar { width: 4px; }
+#transcript::-webkit-scrollbar-thumb { background: #1a3050; border-radius: 2px; }
+
+#transcript .user {
+    color: #5a7090;
+    margin-bottom: 6px;
+    font-size: 12px;
+    padding-left: 8px;
+    border-left: 2px solid #1a3050;
+}
+#transcript .jarvis {
+    color: #5aadff;
+    margin-bottom: 14px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    padding-left: 8px;
+    border-left: 2px solid #1a5090;
+}
+
+#hint {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #1a2a3a;
+    margin-top: 28px;
+}
