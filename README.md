@@ -107,7 +107,7 @@ Jarvis unterstützt MCP (Model Context Protocol) Server für erweiterte Funktion
 ## Architektur
 
 ```
-┌─────────────┐     WebSocket      ┌──────────────┐
+┌─────────────┐     WebSocket        ┌──────────────┐
 │   Browser   │ ◄──────────────────► │   Server     │
 │  (Frontend) │    Audio/Control     │   (Python)   │
 └─────────────┘                      └──────┬───────┘
@@ -116,7 +116,7 @@ Jarvis unterstützt MCP (Model Context Protocol) Server für erweiterte Funktion
        │                                  │
 ┌──────▼────────┐                  ┌───────▼─────────┐
 │  AudioWorklet │                  │  Gemini Live    │
-│  (Mic/Playback) │                  │  API (Google)   │
+│ (Mic/Playback)│                  │  API (Google)   │
 └───────────────┘                  └─────────────────┘
 ```
 
