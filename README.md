@@ -18,16 +18,13 @@ Ein deutscher KI-Assistent mit nativer Sprachausgabe. Keine Text-zu-Sprache-Konv
 ```bash
 # Abhängigkeiten installieren
 pip install -r requirements.txt
-
-# Playwright Browser installieren
-playwright install
 ```
 
 ### 2. Konfiguration
 
 ```bash
-# Beispiel-Konfiguration kopieren und anpassen
-cp config.example.json config.json
+# Setup starten
+python setup_jarvis.py
 ```
 
 `config.json` anpassen:
