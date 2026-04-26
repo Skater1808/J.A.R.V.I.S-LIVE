@@ -203,5 +203,3 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print("\n  Setup abgebrochen.")
-    except Exception as e:
-        print(f"\n  Setup fehlgeschlagen: {e}")

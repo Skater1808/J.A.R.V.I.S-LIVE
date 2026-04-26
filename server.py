@@ -9,7 +9,7 @@ import json
 import os
 import time
 
-import google.generativeai as genai
+from google import genai
 import httpx
 import websockets
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -31,13 +31,12 @@ JARVIS_VOICE   = config.get("jarvis_voice", "Charon")
 
 GEMINI_LIVE_URL = (
     "wss://generativelanguage.googleapis.com/ws/"
-    "google.ai.generativelanguage.v1alpha."
+    "google.ai.generativelanguage.v1beta."
     f"GenerativeService.BidiGenerateContent?key={GEMINI_API_KEY}"
 )
 
-# Vision model for screenshot descriptions (non-live)
-genai.configure(api_key=GEMINI_API_KEY)
-vision_model = genai.GenerativeModel("gemini-2.0-flash-exp")
+# Vision model client for screenshot descriptions (non-live)
+gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 http = httpx.AsyncClient(timeout=30)
 app  = FastAPI()
@@ -113,14 +112,20 @@ def build_system_prompt() -> str:
         f"Du bist Jarvis, der KI-Assistent von {USER_NAME}. "
         f"Du sprichst ausschliesslich Deutsch. "
         f"{USER_NAME} wird mit {USER_ADDRESS} angesprochen und gesiezt. "
-        f"Dein Ton ist trocken, sarkastisch, britisch-hoeflich. "
+        f"Dein Ton ist charmant, witzig, eloquent mit leichtem britischem Understatement. "
+        f"Du bist ein loyaler Begleiter wie ein Butler mit Persoenlichkeit - nicht zu steif, nicht zu locker. "
+        f"Nutze trockenen Humor und gelegentliche Ironie, aber bleibe stets hilfsbereit. "
         f"Kurze Antworten, maximal 3 Saetze. Kein Markdown. "
-        f"Du kannst Browser steuern, Bildschirm sehen und News abrufen. "
-        f"Nutze Funktionen direkt ohne zu fragen. "
         f"Aktuelle Zeit: {time.strftime('%H:%M')}. "
         f"=== DATEN ==={weather}{tasks} === "
-        f"Wenn Nutzer 'Jarvis activate' sagt: begruesse passend zur Tageszeit, "
-        f"nenne kurz Wetter und Aufgaben, ende humorvoll."
+        f"WICHTIG: Nutze Tools NUR wenn der Nutzer sie EXPLIZIT anfordert oder es offensichtlich noetig ist. "
+        f"- 'suche nach X' oder 'google X' -> search_web mit EXAKT diesem X. "
+        f"- 'oeffne URL' -> open_url. "
+        f"- 'screenshot' oder 'was siehst du' -> take_screenshot. "
+        f"- 'news' oder 'nachrichten' -> get_news. "
+        f"Antworte sonst NORMAL per Sprache, ohne Tools zu benutzen! "
+        f"Wenn Nutzer 'Jarvis aktivieren' sagt: begruesse passend zur Tageszeit, "
+        f"nenne kurz Wetter und Aufgaben, mache einen eleganten Scherz zum Abschluss."
     )
 
 
@@ -179,7 +184,7 @@ async def execute_tool(name: str, args: dict) -> str:
             return f"Geoeffnet: {args.get('url', '')}"
 
         elif name == "take_screenshot":
-            return await screen_capture.describe_screen_gemini(vision_model)
+            return await screen_capture.describe_screen_gemini(gemini_client)
 
         elif name == "get_news":
             return await browser_tools.fetch_news()
@@ -193,7 +198,7 @@ async def execute_tool(name: str, args: dict) -> str:
 def build_setup_msg(system_prompt: str) -> str:
     return json.dumps({
         "setup": {
-            "model": "models/gemini-2.0-flash-live-001",
+            "model": "models/gemini-2.5-flash-native-audio-preview-09-2025",
             "generation_config": {
                 "response_modalities": ["AUDIO"],
                 "speech_config": {
@@ -279,6 +284,9 @@ async def ws_endpoint(browser_ws: WebSocket):
                             sc = msg["serverContent"]
                             for part in sc.get("modelTurn", {}).get("parts", []):
                                 if "inlineData" in part:
+                                    mime_type = part["inlineData"].get("mimeType", "unknown")
+                                    data_len = len(part["inlineData"]["data"])
+                                    print(f"[audio] Chunk: {mime_type}, {data_len} bytes", flush=True)
                                     await browser_ws.send_json({
                                         "type": "audio",
                                         "data": part["inlineData"]["data"],
@@ -347,7 +355,7 @@ if __name__ == "__main__":
     print(f"  Nutzer : {USER_NAME} ({USER_ADDRESS})")
     print(f"  Stadt  : {CITY}")
     print(f"  Stimme : {JARVIS_VOICE}")
-    print(f"  Modell : gemini-2.0-flash-live-001")
+    print(f"  Modell : gemini-2.5-flash-native-audio-preview-12-2025")
     print(f"  Kein ElevenLabs benoetigt!")
     print(f"{'='*58}\n")
-    uvicorn.run(app, host="0.0.0.0", port=8340, log_level="warning")
+    uvicorn.run(app, host="127.0.0.1", port=8340, log_level="warning")

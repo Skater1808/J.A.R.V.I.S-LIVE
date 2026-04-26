@@ -66,10 +66,21 @@ function ab2b64(ab) {
 
 // ── Playback ─────────────────────────────────────────────────────────────
 function scheduleChunk(b64Data) {
-    if (!audioCtxOut) return;
+    if (!audioCtxOut) {
+        console.error('[audio] No audio context - user must click orb first');
+        return;
+    }
+    if (audioCtxOut.state === 'suspended') {
+        console.log('[audio] Resuming suspended context...');
+        audioCtxOut.resume();
+    }
 
     const int16  = b64ToInt16(b64Data);
-    if (int16.length === 0) return;
+    if (int16.length === 0) {
+        console.warn('[audio] Empty audio chunk received');
+        return;
+    }
+    console.log(`[audio] Playing chunk: ${int16.length} samples`);
 
     const float32 = int16ToFloat32(int16);
     const buf     = audioCtxOut.createBuffer(1, float32.length, 24000);
@@ -82,8 +93,12 @@ function scheduleChunk(b64Data) {
     // Schedule gaplessly
     const now   = audioCtxOut.currentTime;
     const start = Math.max(now + 0.04, nextPlayTime);
-    src.start(start);
-    nextPlayTime = start + buf.duration;
+    try {
+        src.start(start);
+        nextPlayTime = start + buf.duration;
+    } catch (e) {
+        console.error('[audio] Error starting audio:', e);
+    }
 
     jarvisTalking = true;
     setOrb('speaking');
@@ -153,7 +168,7 @@ function connect() {
 
     ws.onopen = () => {
         console.log('[jarvis] WS verbunden');
-        status('Klicke den Orb um Jarvis zu aktivieren');
+        status('Klicke den Orb um Jarvis zu aktivieren (Audio erfordert Klick)');
         setOrb('idle');
     };
 
@@ -162,6 +177,7 @@ function connect() {
 
         switch (msg.type) {
             case 'audio':
+                console.log(`[ws] Received audio chunk: ${msg.data?.length} chars`);
                 scheduleChunk(msg.data);
                 break;
 

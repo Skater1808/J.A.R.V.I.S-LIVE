@@ -25,7 +25,7 @@ BLOCK_SIZE = 1024
 THRESHOLD = 0.15       # RMS volume spike threshold — lower = more sensitive
 MIN_GAP = 0.1          # Minimum seconds between claps
 MAX_GAP = 1.2          # Maximum seconds between claps — more time for second clap
-COOLDOWN = 3.0         # Seconds to ignore after trigger fires
+COOLDOWN = 2.0         # Seconds to ignore after trigger fires
 
 last_clap_time = 0.0
 triggered = False
@@ -50,7 +50,7 @@ def audio_callback(indata, frames, time_info, status):
                 last_clap_time = 0.0
                 subprocess.Popen(["powershell", "-ExecutionPolicy", "Bypass", "-File", SCRIPT_PATH])
             else:
-                # First claps
+                # First clap
                 print(f"[jarvis] First clap detected (rms={rms:.3f})", flush=True)
                 last_clap_time = now
 

@@ -16,19 +16,22 @@ def capture_screen() -> bytes:
     return buf.getvalue()
 
 
-async def describe_screen_gemini(gemini_model) -> str:
+async def describe_screen_gemini(gemini_client) -> str:
     """Capture screen and describe it using Gemini Vision."""
     png_bytes = capture_screen()
-    
+
     # Gemini expects PIL Image object
     img = Image.open(io.BytesIO(png_bytes))
-    
-    # Generate description
-    response = gemini_model.generate_content([
-        "Beschreibe kurz auf Deutsch was auf diesem Bildschirm zu sehen ist. Maximal 2-3 Saetze. Nenne die wichtigsten offenen Programme und Inhalte.",
-        img
-    ])
-    
+
+    # Generate description using new google-genai SDK
+    response = gemini_client.models.generate_content(
+        model="gemini-2.0-flash-exp",
+        contents=[
+            "Beschreibe kurz auf Deutsch was auf diesem Bildschirm zu sehen ist. Maximal 2-3 Saetze. Nenne die wichtigsten offenen Programme und Inhalte.",
+            img
+        ]
+    )
+
     return response.text
 
 
