@@ -1,0 +1,100 @@
+{
+  "_comment": "Beispiele fuer alle beliebten MCP Server - ALLE werden automatisch installiert. Kopiere die gewuenschten nach mcp_servers.json",
+  "servers": [
+    {
+      "name": "filesystem",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Users\\Emil"],
+      "env": {},
+      "description": "Dateisystem-Zugriff (lesen, schreiben, suchen)"
+    },
+    {
+      "name": "github",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_TOKEN_HERE"
+      },
+      "description": "GitHub API - Repos, Issues, PRs (Token benoetigt!)"
+    },
+    {
+      "name": "puppeteer",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+      "env": {},
+      "description": "Browser-Automation, Screenshots, PDF-Export"
+    },
+    {
+      "name": "sqlite",
+      "command": "uvx",
+      "args": ["mcp-server-sqlite", "--db-path", "C:\\Users\\Emil\\data.db"],
+      "env": {},
+      "description": "SQLite Datenbank (uv wird automatisch installiert)"
+    },
+    {
+      "name": "fetch",
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "env": {},
+      "description": "HTTP Requests (uv wird automatisch installiert)"
+    },
+    {
+      "name": "brave-search",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "YOUR_API_KEY_HERE"
+      },
+      "description": "Brave Web Search API (API Key benoetigt!)"
+    },
+    {
+      "name": "postgres",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://localhost/mydb"],
+      "env": {},
+      "description": "PostgreSQL Datenbank-Abfragen"
+    },
+    {
+      "name": "google-maps",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-google-maps"],
+      "env": {
+        "GOOGLE_MAPS_API_KEY": "YOUR_API_KEY_HERE"
+      },
+      "description": "Google Maps Geocoding, Routen, Orte"
+    },
+    {
+      "name": "slack",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-slack"],
+      "env": {
+        "SLACK_BOT_TOKEN": "YOUR_BOT_TOKEN_HERE",
+        "SLACK_TEAM_ID": "YOUR_TEAM_ID_HERE"
+      },
+      "description": "Slack Nachrichten senden/lesen"
+    },
+    {
+      "name": "sentry",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sentry"],
+      "env": {
+        "SENTRY_AUTH_TOKEN": "YOUR_TOKEN_HERE"
+      },
+      "description": "Sentry Error Tracking"
+    },
+    {
+      "name": "sequential-thinking",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "env": {},
+      "description": "Strukturiertes Denken fuer komplexe Probleme"
+    },
+    {
+      "name": "time",
+      "command": "uvx",
+      "args": ["mcp-server-time"],
+      "env": {},
+      "description": "Zeit- und Datumsfunktionen (uv wird automatisch installiert)"
+    }
+  ]
+}

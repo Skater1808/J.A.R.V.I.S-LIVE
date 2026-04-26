@@ -1,116 +1,194 @@
-# 🤖 JARVIS V3 — Gemini Live 
+# Jarvis V3 — Gemini Live Voice Assistant
 
-Ein persönlicher KI-Sprachassistent mit echter Sprach-Konversation.
+Ein deutscher KI-Assistent mit nativer Sprachausgabe. Keine Text-zu-Sprache-Konvertierung, keine externe TTS-API — 100% native Gemini Live Audio.
 
-**Mic → Gemini Live → Speaker**
+## Features
 
-## ⚡ Quick Start
+- **Rein Audio-basiert**: Spracheingabe → Gemini Live API → Sprachausgabe
+- **Eingebaute Tools**: Websuche, Screenshots, URL-Öffnen, Nachrichten
+- **MCP Server Unterstützung**: Dateisystem, Zeit, Datenbanken und mehr via Model Context Protocol
+- **Deutsche Persönlichkeit**: Charmant, witzig, eloquent mit britischem Understatement
+- **Multi-Modal**: Unterstützt Audio + Vision (Screenshots)
+- **Echtzeit**: WebSocket-basierte Kommunikation mit Gemini Live
+
+## Schnellstart
+
+### 1. Installation
 
 ```bash
-# 1. Setup
-python setup_jarvis.py
+# Abhängigkeiten installieren
+pip install -r requirements.txt
 
-# 2. Server
-python server.py
-
-# 3. Browser
-http://localhost:8340
-# Klick Orb → Sprechen!
+# Playwright Browser installieren
+playwright install
 ```
 
-## 🔑 API-Keys
+### 2. Konfiguration
 
-1. **Gemini**: https://aistudio.google.com/app/apikey (kostenlos)
-
-## 💬 Befehle
-
-```
-"Wie ist das Wetter?"
-"Such nach Python Tutorials"
-"Öffne GitHub.com"
-"Was siehst du auf meinem Bildschirm?"
-"Zeig meine Aufgaben"
+```bash
+# Beispiel-Konfiguration kopieren und anpassen
+cp config.example.json config.json
 ```
 
-## 📁 Struktur
-
-```
-jarvis-voice-assistant/
-├── server.py              ← FastAPI + Gemini Live
-├── setup_jarvis.py        ← Interaktives Setup
-├── requirements.txt       ← Dependencies
-├── config.example.json    ← Template
-├── config.json            ← Deine Config (wird erstellt)
-├── browser_tools.py       ← Browser Automation
-├── screen_capture.py      ← Screenshot Vision
-├── frontend/
-│   ├── index.html
-│   ├── main.js           ← Mic Capture + Audio Playback
-│   └── style.css
-└── scripts/
-    ├── clap-trigger.py
-```
-
-## 🎯 Features
-
-✅ Live Voice Input (PCM 16kHz)
-✅ Gemini Live Conversation
-✅ Browser Control (Google Search, URLs)
-✅ Screenshot Analysis
-✅ Weather + Tasks
-✅ Tool Calling (search, open, screenshot, news)
-
-## 💰 Kosten
-
-- Gemini API: **Kostenlos** (60 req/min)
-- **Total: €0,00/Monat**
-
-## 🔧 Konfiguration
-
-In `config.json`:
+`config.json` anpassen:
 
 ```json
 {
-  "gemini_api_key": "...",
-  "user_name": "Emil",
+  "gemini_api_key": "DEIN_GEMINI_API_KEY",
+  "user_name": "Dein Name",
   "user_address": "Sir",
-  "city": "Hamburg"
+  "city": "Bremen",
+  "jarvis_voice": "Charon"
 }
 ```
 
-## 👏 Mit Doppelklatschen starten
+**Verfügbare Stimmen**: `Puck` | `Charon` | `Kore` | `Fenrir` | `Aoede`
+
+### 3. Start
 
 ```bash
-python scripts/clap-trigger.py
-# Zweimal klatschen → Chrome + Code + Obsidian + Jarvis starten
+python server.py
 ```
 
-## 🛠️ Windows Task Scheduler
+Dann öffne: http://localhost:8340
 
-Autostart einrichten:
-1. `Win + R` → `taskschd.msc`
-2. "Aufgabe erstellen"
-3. Trigger: "Bei Anmeldung"
-4. Aktion: `powershell -ExecutionPolicy Bypass -WindowStyle Hidden -Command "python C:\path\to\clap-trigger.py"`
+**Wichtig**: Auf den Orb klicken, um Audio zu aktivieren (Browser-Policy).
 
-## 📞 Troubleshooting
+## MCP Server Konfiguration
 
-| Problem | Lösung |
-|---------|--------|
-| Gemini API Error | API Key prüfen + neu erstellen |
-| Mikrofon geht nicht | `chrome://settings/content/microphone` → "Zulassen" |
-| Port 8340 belegt | Andere App beenden oder `set JARVIS_PORT=8341` |
+Jarvis unterstützt MCP (Model Context Protocol) Server für erweiterte Funktionalität.
 
-## 📖 Mehr Infos
+### Aktive Server
 
-- Gemini Docs: https://ai.google.dev
-- Playwright: https://playwright.dev
+`mcp_servers.json` enthält die aktiven Server:
 
----
+```json
+{
+  "servers": [
+    {
+      "name": "filesystem",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Users\\DeinUser"],
+      "env": {},
+      "description": "Dateisystem-Zugriff"
+    }
+  ]
+}
+```
 
-**Viel Spaß mit Jarvis! 🎉**
+### Verfügbare MCP Server
 
+`mcp_servers.example.json` enthält Beispiele für 12 beliebte Server:
 
+| Server | Beschreibung | Installation |
+|--------|--------------|--------------|
+| `filesystem` | Dateien lesen/schreiben | Auto (npx) |
+| `time` | Zeit/Datumsfunktionen | Auto (uvx) |
+| `github` | GitHub API Zugriff | Auto (npx) + Token |
+| `puppeteer` | Browser-Automation | Auto (npx) |
+| `sqlite` | SQLite Datenbank | Auto (uvx) |
+| `fetch` | HTTP Requests | Auto (uvx) |
+| `brave-search` | Brave Web Search | Auto (npx) + API Key |
+| `postgres` | PostgreSQL Datenbank | Auto (npx) |
+| `google-maps` | Maps Geocoding | Auto (npx) + API Key |
+| `slack` | Slack Integration | Auto (npx) + Token |
+| `sentry` | Error Tracking | Auto (npx) + Token |
+| `sequential-thinking` | Strukturiertes Denken | Auto (npx) |
+
+**Alle Server werden automatisch installiert** — keine manuelle Installation nötig!
+
+### Server aktivieren
+
+1. Einträge aus `mcp_servers.example.json` kopieren
+2. In `mcp_servers.json` einfügen
+3. Server neu starten
+4. API Keys in `env` konfigurieren (falls nötig)
+
+## Architektur
+
+```
+┌─────────────┐     WebSocket      ┌──────────────┐
+│   Browser   │ ◄──────────────────► │   Server     │
+│  (Frontend) │    Audio/Control     │   (Python)   │
+└─────────────┘                      └──────┬───────┘
+       │                                  │
+       │ WebSocket                        │ WebSocket
+       │                                  │
+┌──────▼────────┐                  ┌───────▼─────────┐
+│  AudioWorklet │                  │  Gemini Live    │
+│  (Mic/Playback) │                  │  API (Google)   │
+└───────────────┘                  └─────────────────┘
+```
+
+### Komponenten
+
+- **`server.py`**: FastAPI WebSocket-Server, Gemini-Kommunikation, Tool-Execution
+- **`mcp_client.py`**: MCP Server Verwaltung, Tool-Discovery, Schema-Konvertierung
+- **`browser_tools.py`**: Playwright-basierte Browser-Tools (Suche, Screenshots)
+- **`frontend/main.js`**: WebSocket-Client, Audio-Capture/Playback, AudioWorklet
+
+## Tools
+
+### Eingebaute Tools
+
+- `search_web(query)` — Websuche via DuckDuckGo
+- `open_url(url)` — URL im Browser öffnen
+- `take_screenshot()` — Screenshot + Vision-Analyse
+- `get_news()` — Aktuelle Nachrichten
+
+### MCP Tools
+
+MCP Server-Tools werden automatisch mit Präfix verfügbar:
+- `filesystem__read_file(path)`
+- `filesystem__write_file(path, content)`
+- `time__get_current_time()`
+- etc.
+
+## Entwicklung
+
+### Projektstruktur
+
+```
+nummer 4/
+├── server.py              # Hauptserver
+├── mcp_client.py          # MCP Client Manager
+├── browser_tools.py       # Browser-Automation
+├── screen_capture.py      # Screenshot-Funktionen
+├── config.json            # Konfiguration
+├── mcp_servers.json       # Aktive MCP Server
+├── mcp_servers.example.json  # Beispiel-Server
+├── requirements.txt       # Python-Abhängigkeiten
+└── frontend/
+    ├── index.html         # UI
+    ├── main.js            # Audio-Logik
+    └── style.css          # Styling
+```
+
+### Wichtige Konfigurationen
+
+| Datei | Zweck |
+|-------|-------|
+| `config.json` | API-Keys, Nutzerdaten, Voice |
+| `mcp_servers.json` | Aktive MCP Server |
+| `mcp_servers.example.json` | Verfügbare Server-Beispiele |
+
+## Troubleshooting
+
+### Kein Audio
+
+- **Orb klicken** vor dem Sprechen (Browser-Policy)
+- Konsole auf Fehler prüfen
+- `audioCtxOut` wird bei ersten Chunk erstellt
+
+### MCP Server Fehler
+
+- Automatische Installation prüfen: `[mcp] uv erfolgreich installiert!`
+- Bei Fehlern: Server manuell testen mit `npx -y @modelcontextprotocol/server-XYZ`
+
+### Gemini Verbindung
+
+- API-Key in `config.json` prüfen
+- Modell-Verfügbarkeit: `gemini-2.5-flash-native-audio-preview`
 
 ## Credits
 
@@ -119,3 +197,7 @@ Built by [Julian](https://skool.com/ki-automatisierung) with [Claude Code](https
 Inspired by Iron Man's J.A.R.V.I.S. — *"At your service, Sir."*
 
 ---
+
+## License
+
+MIT — use it, modify it, build on it. If you build something cool, let me know!

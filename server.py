@@ -16,6 +16,9 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+# ── MCP Client ────────────────────────────────────────────────────────────
+import mcp_client
+
 # ── Config ─────────────────────────────────────────────────────────────
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 with open(CONFIG_PATH) as f:
@@ -37,6 +40,18 @@ GEMINI_LIVE_URL = (
 
 # Vision model client for screenshot descriptions (non-live)
 gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+
+# MCP tool declarations (populated on startup)
+MCP_TOOL_DECLARATIONS = []
+
+
+async def initialize_servers():
+    """Initialize all servers including MCP."""
+    global MCP_TOOL_DECLARATIONS
+    await mcp_client.initialize_mcp()
+    MCP_TOOL_DECLARATIONS = mcp_client.get_mcp_tools()
+    if MCP_TOOL_DECLARATIONS:
+        print(f"[jarvis] MCP tools loaded: {len(MCP_TOOL_DECLARATIONS)}", flush=True)
 
 http = httpx.AsyncClient(timeout=30)
 app  = FastAPI()
@@ -123,6 +138,7 @@ def build_system_prompt() -> str:
         f"- 'oeffne URL' -> open_url. "
         f"- 'screenshot' oder 'was siehst du' -> take_screenshot. "
         f"- 'news' oder 'nachrichten' -> get_news. "
+        f"- MCP tools (z.B. 'filesystem__read_file') -> fuer Dateisystem, Datenbanken, etc. "
         f"Antworte sonst NORMAL per Sprache, ohne Tools zu benutzen! "
         f"Wenn Nutzer 'Jarvis aktivieren' sagt: begruesse passend zur Tageszeit, "
         f"nenne kurz Wetter und Aufgaben, mache einen eleganten Scherz zum Abschluss."
@@ -189,6 +205,10 @@ async def execute_tool(name: str, args: dict) -> str:
         elif name == "get_news":
             return await browser_tools.fetch_news()
 
+        # MCP tools (prefixed with server name)
+        elif mcp_client.is_mcp_tool(name):
+            return await mcp_client.execute_mcp_tool(name, args)
+
     except Exception as e:
         return f"Fehler: {e}"
     return "Unbekannte Funktion."
@@ -196,6 +216,9 @@ async def execute_tool(name: str, args: dict) -> str:
 
 # ── Gemini Live Setup Message ────────────────────────────────────────────
 def build_setup_msg(system_prompt: str) -> str:
+    # Combine built-in tools with MCP tools
+    all_tools = FUNCTION_DECLARATIONS + MCP_TOOL_DECLARATIONS
+
     return json.dumps({
         "setup": {
             "model": "models/gemini-2.5-flash-native-audio-preview-09-2025",
@@ -212,7 +235,7 @@ def build_setup_msg(system_prompt: str) -> str:
             "system_instruction": {
                 "parts": [{"text": system_prompt}]
             },
-            "tools": [{"function_declarations": FUNCTION_DECLARATIONS}],
+            "tools": [{"function_declarations": all_tools}],
         }
     })
 
@@ -291,11 +314,6 @@ async def ws_endpoint(browser_ws: WebSocket):
                                         "type": "audio",
                                         "data": part["inlineData"]["data"],
                                     })
-                                if "text" in part and part["text"].strip():
-                                    await browser_ws.send_json({
-                                        "type": "transcript",
-                                        "text": part["text"].strip(),
-                                    })
                             if sc.get("turnComplete"):
                                 await browser_ws.send_json({"type": "turn_complete"})
                             if sc.get("interrupted"):
@@ -345,6 +363,12 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 @app.get("/")
 async def index():
     return FileResponse("frontend/index.html")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize MCP servers on startup."""
+    await initialize_servers()
 
 
 if __name__ == "__main__":

@@ -66,13 +66,20 @@ function ab2b64(ab) {
 
 // ── Playback ─────────────────────────────────────────────────────────────
 function scheduleChunk(b64Data) {
+    // Create audio context on first chunk if needed (requires user gesture)
     if (!audioCtxOut) {
-        console.error('[audio] No audio context - user must click orb first');
-        return;
+        try {
+            audioCtxOut = new AudioContext({ sampleRate: 24000 });
+            console.log('[audio] Created output context on first chunk');
+        } catch (e) {
+            console.error('[audio] Cannot create audio context - user must click orb first');
+            status('Klicke den Orb um Audio zu aktivieren');
+            return;
+        }
     }
     if (audioCtxOut.state === 'suspended') {
         console.log('[audio] Resuming suspended context...');
-        audioCtxOut.resume();
+        audioCtxOut.resume().catch(e => console.error('[audio] Could not resume:', e));
     }
 
     const int16  = b64ToInt16(b64Data);
@@ -179,10 +186,6 @@ function connect() {
             case 'audio':
                 console.log(`[ws] Received audio chunk: ${msg.data?.length} chars`);
                 scheduleChunk(msg.data);
-                break;
-
-            case 'transcript':
-                addLine('jarvis', msg.text);
                 break;
 
             case 'turn_complete':
