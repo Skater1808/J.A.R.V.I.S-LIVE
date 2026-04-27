@@ -18,13 +18,16 @@ Ein deutscher KI-Assistent mit nativer Sprachausgabe. Keine Text-zu-Sprache-Konv
 ```bash
 # Abhängigkeiten installieren
 pip install -r requirements.txt
+
+# Playwright Browser installieren
+playwright install
 ```
 
 ### 2. Konfiguration
 
 ```bash
-# Setup starten
-python setup_jarvis.py
+# Beispiel-Konfiguration kopieren und anpassen
+cp config.example.json config.json
 ```
 
 `config.json` anpassen:
@@ -113,7 +116,7 @@ Jarvis unterstützt MCP (Model Context Protocol) Server für erweiterte Funktion
        │                                  │
 ┌──────▼────────┐                  ┌───────▼─────────┐
 │  AudioWorklet │                  │  Gemini Live    │
-│ (Mic/Playback)│                  │  API (Google)   │
+│(Mic/Playback) │                  │  API (Google)   │
 └───────────────┘                  └─────────────────┘
 ```
 
@@ -152,6 +155,7 @@ nummer 4/
 ├── browser_tools.py       # Browser-Automation
 ├── screen_capture.py      # Screenshot-Funktionen
 ├── config.json            # Konfiguration
+├── config.example.json    # Beispiel-Konfiguration
 ├── mcp_servers.json       # Aktive MCP Server
 ├── mcp_servers.example.json  # Beispiel-Server
 ├── requirements.txt       # Python-Abhängigkeiten
@@ -190,6 +194,8 @@ nummer 4/
 ## Credits
 
 Built by [Julian](https://skool.com/ki-automatisierung) with [Claude Code](https://claude.ai/code).
+
+Modified by [Skater1808](https://github.com/Skater1808) [with Kimi K2.5 in Windsurf]((https://windsurf.com))
 
 Inspired by Iron Man's J.A.R.V.I.S. — *"At your service, Sir."*
 

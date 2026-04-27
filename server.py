@@ -8,6 +8,7 @@ import asyncio
 import json
 import os
 import time
+from datetime import datetime
 
 from google import genai
 import httpx
@@ -18,6 +19,14 @@ from fastapi.staticfiles import StaticFiles
 
 # ── MCP Client ────────────────────────────────────────────────────────────
 import mcp_client
+
+# ── Memory System ─────────────────────────────────────────────────────────
+import memory
+from memory import init_database, get_facts_for_prompt, get_conversation_context, remember_fact, save_conversation
+
+# ── Quick Notes System ────────────────────────────────────────────────────
+import quick_notes
+from quick_notes import add_quick_note
 
 # ── Config ─────────────────────────────────────────────────────────────
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
@@ -108,7 +117,7 @@ refresh_data()
 
 
 # ── System Prompt ────────────────────────────────────────────────────────
-def build_system_prompt() -> str:
+async def build_system_prompt(user_query: str = "") -> str:
     weather = ""
     if WEATHER_INFO:
         w = WEATHER_INFO
@@ -122,6 +131,19 @@ def build_system_prompt() -> str:
             f"\nOffene Aufgaben ({len(TASKS_INFO)}): "
             + ", ".join(TASKS_INFO[:5])
         )
+    
+    # Load memory information
+    memory_facts = await get_facts_for_prompt(user_query, limit=5)
+    memory_context = await get_conversation_context(limit=3)
+    
+    memory_section = ""
+    if memory_facts or memory_context:
+        memory_section = "\n=== GEDAECHTNIS ==="
+        if memory_facts:
+            memory_section += f"\nWichtige Fakten:\n{memory_facts}"
+        if memory_context:
+            memory_section += f"\n\nLetzte Gespräche:\n{memory_context}"
+        memory_section += "\nNutze diese Informationen natuerlich, ohne explizit zu sagen 'laut meiner Datenbank...'"
 
     return (
         f"Du bist Jarvis, der KI-Assistent von {USER_NAME}. "
@@ -131,13 +153,15 @@ def build_system_prompt() -> str:
         f"Du bist ein loyaler Begleiter wie ein Butler mit Persoenlichkeit - nicht zu steif, nicht zu locker. "
         f"Nutze trockenen Humor und gelegentliche Ironie, aber bleibe stets hilfsbereit. "
         f"Kurze Antworten, maximal 3 Saetze. Kein Markdown. "
-        f"Aktuelle Zeit: {time.strftime('%H:%M')}. "
-        f"=== DATEN ==={weather}{tasks} === "
+        f"Aktuelle Zeit: {datetime.now().strftime('%H:%M')}. "
+        f"=== DATEN ==={weather}{tasks}{memory_section} === "
         f"WICHTIG: Nutze Tools NUR wenn der Nutzer sie EXPLIZIT anfordert oder es offensichtlich noetig ist. "
         f"- 'suche nach X' oder 'google X' -> search_web mit EXAKT diesem X. "
         f"- 'oeffne URL' -> open_url. "
         f"- 'screenshot' oder 'was siehst du' -> take_screenshot. "
         f"- 'news' oder 'nachrichten' -> get_news. "
+        f"- 'merke dir...' -> remember_fact fuer Langzeitgedaechtnis. "
+        f"- 'Notiere...' / 'Zu den Notizen:' -> add_quick_note fuer schnelle Datei-Notizen. "
         f"- MCP tools (z.B. 'filesystem__read_file') -> fuer Dateisystem, Datenbanken, etc. "
         f"Antworte sonst NORMAL per Sprache, ohne Tools zu benutzen! "
         f"Wenn Nutzer 'Jarvis aktivieren' sagt: begruesse passend zur Tageszeit, "
@@ -179,6 +203,43 @@ FUNCTION_DECLARATIONS = [
         "description": "Aktuelle Weltnachrichten abrufen",
         "parameters": {"type": "OBJECT", "properties": {}},
     },
+    {
+        "name": "remember_fact",
+        "description": "Speichert eine persoenliche Information fuer das Langzeitgedaechtnis",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "category": {
+                    "type": "STRING",
+                    "description": "Kategorie: preference, date, habit, project, negative_experience",
+                    "enum": ["preference", "date", "habit", "project", "negative_experience"]
+                },
+                "fact_text": {
+                    "type": "STRING",
+                    "description": "Die zu merkende Information"
+                },
+                "context": {
+                    "type": "STRING",
+                    "description": "Zusatzkontext oder Original-Satz"
+                }
+            },
+            "required": ["category", "fact_text"],
+        },
+    },
+    {
+        "name": "add_quick_note",
+        "description": "Speichert eine schnelle Notiz in eine Datei (nicht fuer Langzeitgedaechtnis). Verwenden fuer: 'Notiere:', 'Merke dir:', 'Zu den Notizen:'",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "note_text": {
+                    "type": "STRING",
+                    "description": "Der komplette Inhalt der Notiz"
+                }
+            },
+            "required": ["note_text"],
+        },
+    },
 ]
 
 
@@ -204,6 +265,18 @@ async def execute_tool(name: str, args: dict) -> str:
 
         elif name == "get_news":
             return await browser_tools.fetch_news()
+
+        elif name == "remember_fact":
+            success = await remember_fact(
+                args.get("category", "preference"),
+                args.get("fact_text", ""),
+                args.get("context", "")
+            )
+            return "Gespeichert." if success else "Konnte nicht speichern."
+
+        elif name == "add_quick_note":
+            from quick_notes import add_quick_note
+            return await add_quick_note(args.get("note_text", ""), config)
 
         # MCP tools (prefixed with server name)
         elif mcp_client.is_mcp_tool(name):
@@ -258,8 +331,9 @@ async def ws_endpoint(browser_ws: WebSocket):
             ping_timeout=60,
         ) as gemini_ws:
 
-            # Handshake
-            await gemini_ws.send(build_setup_msg(build_system_prompt()))
+            # Handshake - load system prompt with memory (empty query for general facts)
+            system_prompt = await build_system_prompt("")
+            await gemini_ws.send(build_setup_msg(system_prompt))
             raw = await asyncio.wait_for(gemini_ws.recv(), timeout=10)
             resp = json.loads(raw)
             if "setupComplete" in resp:

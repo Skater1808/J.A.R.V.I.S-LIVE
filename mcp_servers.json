@@ -1,0 +1,19 @@
+{
+  "_comment": "Aktive MCP Server - werden automatisch installiert wenn nötig",
+  "servers": [
+    {
+      "name": "filesystem",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Users\\Emil"],
+      "env": {},
+      "description": "Dateisystem-Zugriff - wird automatisch installiert"
+    },
+    {
+      "name": "time",
+      "command": "uvx",
+      "args": ["mcp-server-time"],
+      "env": {},
+      "description": "Zeit- und Datumsfunktionen - uv wird automatisch installiert"
+    }
+  ]
+}
