@@ -381,9 +381,6 @@ async def ws_endpoint(browser_ws: WebSocket):
                             sc = msg["serverContent"]
                             for part in sc.get("modelTurn", {}).get("parts", []):
                                 if "inlineData" in part:
-                                    mime_type = part["inlineData"].get("mimeType", "unknown")
-                                    data_len = len(part["inlineData"]["data"])
-                                    print(f"[audio] Chunk: {mime_type}, {data_len} bytes", flush=True)
                                     await browser_ws.send_json({
                                         "type": "audio",
                                         "data": part["inlineData"]["data"],

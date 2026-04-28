@@ -127,6 +127,17 @@ def main():
     if use_obs == "j":
         obsidian = ask("  Pfad zum Inbox-Ordner", required=False) or ""
 
+    header("Schritt 8 · Quick Notes (Sprachnotizen)")
+    print("  Jarvis kann Notizen per Sprache speichern:")
+    print('  "Notiere: Besprechung morgen 10 Uhr"')
+    print('  "Merke dir: Milch kaufen"')
+    print()
+    default_notes_path = os.path.join(os.path.expanduser("~"), "Documents", "JarvisQuickNotes.md")
+    use_qn = input("  Quick Notes aktivieren? (j/n) [j]: ").strip().lower()
+    quick_notes_path = ""
+    if use_qn != "n":
+        quick_notes_path = ask("  Pfad zur Notizendatei", default=default_notes_path, required=False) or default_notes_path
+
     # ── Config erstellen ───────────────────────────────────────────────────
     header("Config wird erstellt...")
     workspace = os.path.dirname(os.path.abspath(__file__))
@@ -141,6 +152,7 @@ def main():
         "spotify_track":      spotify,
         "apps":               apps,
         "obsidian_inbox_path": obsidian,
+        "quick_notes_path":   quick_notes_path,
     }
     cfg_path = os.path.join(workspace, "config.json")
     with open(cfg_path, "w", encoding="utf-8") as f:
@@ -193,6 +205,8 @@ def main():
   "Such nach Python Tutorials"
   "Öffne GitHub"
   "Was siehst du auf meinem Bildschirm?"
+  "Notiere: Besprechung morgen 10 Uhr"
+  "Merke dir: Milch kaufen"
 
   💡 Kein ElevenLabs, kein Anthropic — nur Gemini!
 """)

@@ -1,5 +1,62 @@
-.DS_Store
-*.log
-__pycache__/
-*.pyc
+# ── Konfiguration mit sensiblen Daten ───────────────────────────────────────
 config.json
+!config.example.json
+mcp_servers.json
+!mcp_servers.example.json
+
+# ── Datenbanken ───────────────────────────────────────────────────────────
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ── Virtuelle Umgebungen ──────────────────────────────────────────────────
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Logs ─────────────────────────────────────────────────────────────────
+*.log
+
+# ── Private Notizen (falls im Repo) ───────────────────────────────────────
+*QuickNotes*.md
+*Notes*.md
+JarvisNotizen*.md
+
+# ── OS-spezifisch ───────────────────────────────────────────────────────
+Thumbs.db
+desktop.ini
+.DS_Store
