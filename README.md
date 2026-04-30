@@ -110,7 +110,6 @@ Jarvis unterstützt MCP (Model Context Protocol) Server für erweiterte Funktion
 1. Einträge aus `mcp_servers.example.json` kopieren
 2. In `mcp_servers.json` einfügen
 3. Server neu starten
-4. API Keys in `env` konfigurieren (falls nötig)
 
 ## Architektur
 
