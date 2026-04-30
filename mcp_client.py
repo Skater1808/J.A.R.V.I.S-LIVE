@@ -355,11 +355,18 @@ class MCPClientManager:
         return f"Error: Unknown MCP tool: {full_tool_name}"
 
     async def disconnect_all(self):
-        """Disconnect from all MCP servers."""
-        for server in self.servers.values():
-            await server.disconnect()
+        """Disconnect from all MCP servers with error handling."""
+        for server_name, server in list(self.servers.items()):
+            try:
+                await server.disconnect()
+            except Exception as e:
+                print(f"[mcp] Error disconnecting from {server_name}: {e}", flush=True)
         self.servers.clear()
         self._connected = False
+
+    async def cleanup(self):
+        """Cleanup all resources - alias for disconnect_all."""
+        await self.disconnect_all()
 
 
 # Global manager instance
@@ -399,3 +406,11 @@ def is_mcp_tool(tool_name: str) -> bool:
         if tool_name.startswith(f"{server_name}__"):
             return True
     return False
+
+
+async def cleanup():
+    """Global cleanup function for lifespan shutdown."""
+    global _mcp_manager
+    if _mcp_manager is not None:
+        await _mcp_manager.cleanup()
+        _mcp_manager = None

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Jarvis V3 — Setup Wizard (Gemini Live Edition)
+J.A.R.V.I.S — Setup Wizard (Gemini Live Edition)
+Deutscher KI-Assistent mit Gedächtnis, Wiki-Integration & Voice Activity Detection.
 Alles kostenlos. Kein ElevenLabs. Direkte Sprachausgabe via Gemini.
 """
 
@@ -82,7 +83,7 @@ def select_voice():
 
 
 def main():
-    header("🤖 JARVIS V3  —  Setup Wizard (Gemini Live)")
+    header("🤖 J.A.R.V.I.S  —  Setup Wizard (Gemini Live)")
 
     # ── Schritt 0: Voraussetzungen ────────────────────────────────────────
     header("Schritt 0 · Voraussetzungen")
@@ -138,6 +139,18 @@ def main():
     if use_qn != "n":
         quick_notes_path = ask("  Pfad zur Notizendatei", default=default_notes_path, required=False) or default_notes_path
 
+    header("Schritt 9 · Wiki-Quellen (optional)")
+    print("  Jarvis kann Wikipedia, Fandom und Arch Wiki durchsuchen.")
+    print("  Für Fandom-Wikis kannst du bevorzugte Wikis angeben:")
+    print("  Beispiele: minecraft, starwars, marvel, harrypotter, lol, wow")
+    print()
+    use_wiki = input("  Wiki-Quellen konfigurieren? (j/n) [n]: ").strip().lower()
+    wiki_sources = {}
+    if use_wiki == "j":
+        fandom_raw = ask("  Fandom-Wikis (kommagetrennt, z.B. minecraft,starwars)", default="", required=False)
+        if fandom_raw:
+            wiki_sources["fandom"] = [f.strip() for f in fandom_raw.split(",") if f.strip()]
+
     # ── Config erstellen ───────────────────────────────────────────────────
     header("Config wird erstellt...")
     workspace = os.path.dirname(os.path.abspath(__file__))
@@ -153,6 +166,7 @@ def main():
         "apps":               apps,
         "obsidian_inbox_path": obsidian,
         "quick_notes_path":   quick_notes_path,
+        "wiki_sources":       wiki_sources,
     }
     cfg_path = os.path.join(workspace, "config.json")
     with open(cfg_path, "w", encoding="utf-8") as f:
@@ -203,10 +217,18 @@ def main():
   ── TIPPS ───────────────────────────────────────────
   "Wie ist das Wetter?"
   "Such nach Python Tutorials"
+  "Was ist Wikipedia?" / "Erklär Arch Linux"
   "Öffne GitHub"
   "Was siehst du auf meinem Bildschirm?"
   "Notiere: Besprechung morgen 10 Uhr"
-  "Merke dir: Milch kaufen"
+  "Merke dir: Ich bin Vegetarier"
+  "Erinnerst du dich an meine Ernährung?"
+
+  ── NEUE FEATURES ─────────────────────────────────
+  🧠 Memory: Jarvis merkt sich Fakten & Kontext
+  📚 Wiki: Wikipedia, Fandom, Arch Wiki
+  🎙️ VAD: Auto-Antwort nach 3 Sekunden Stille
+  🔇 Echo-Prevention: Mic stoppt bei Jarvis-Ausgabe
 
   💡 Kein ElevenLabs, kein Anthropic — nur Gemini!
 """)

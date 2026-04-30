@@ -8,5 +8,9 @@
   "spotify_track": "spotify:track:YOUR_TRACK_ID",
   "browser_url": "https://your-website.com",
   "obsidian_inbox_path": "",
+  "quick_notes_path": "C:\\Users\\YOUR_USER\\Documents\\JarvisQuickNotes.md",
+  "wiki_sources": {
+    "fandom": ["minecraft", "starwars", "marvel"]
+  },
   "apps": ["code"]
 }

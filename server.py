@@ -13,6 +13,7 @@ from datetime import datetime
 from google import genai
 import httpx
 import websockets
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -62,8 +63,21 @@ async def initialize_servers():
     if MCP_TOOL_DECLARATIONS:
         print(f"[jarvis] MCP tools loaded: {len(MCP_TOOL_DECLARATIONS)}", flush=True)
 
+
+# ── FastAPI App with Lifespan ────────────────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events."""
+    # Startup
+    await initialize_servers()
+    yield
+    # Shutdown
+    await mcp_client.cleanup()
+
+app = FastAPI(lifespan=lifespan)
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
 http = httpx.AsyncClient(timeout=30)
-app  = FastAPI()
 
 import browser_tools
 import screen_capture
@@ -160,12 +174,11 @@ async def build_system_prompt(user_query: str = "") -> str:
         f"- 'oeffne URL' -> open_url. "
         f"- 'screenshot' oder 'was siehst du' -> take_screenshot. "
         f"- 'news' oder 'nachrichten' -> get_news. "
+        f"- 'Was ist X?' / 'Erklaer mir Y' -> search_wiki fuer Fakten aus Wikipedia. "
         f"- 'merke dir...' -> remember_fact fuer Langzeitgedaechtnis. "
         f"- 'Notiere...' / 'Zu den Notizen:' -> add_quick_note fuer schnelle Datei-Notizen. "
         f"- MCP tools (z.B. 'filesystem__read_file') -> fuer Dateisystem, Datenbanken, etc. "
-        f"Antworte sonst NORMAL per Sprache, ohne Tools zu benutzen! "
-        f"Wenn Nutzer 'Jarvis aktivieren' sagt: begruesse passend zur Tageszeit, "
-        f"nenne kurz Wetter und Aufgaben, mache einen eleganten Scherz zum Abschluss."
+        f"Antworte sonst NORMAL per Sprache, ohne Tools zu benutzen!"
     )
 
 
@@ -240,6 +253,25 @@ FUNCTION_DECLARATIONS = [
             "required": ["note_text"],
         },
     },
+    {
+        "name": "search_wiki",
+        "description": "Durchsucht Wikipedia, Fandom und Arch Wiki nach Informationen. Nutze fuer: 'Was ist X?', 'Erklaer mir Y', 'Wiki-Suche nach Z'",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "query": {
+                    "type": "STRING",
+                    "description": "Der Suchbegriff oder das Thema"
+                },
+                "wiki_source": {
+                    "type": "STRING",
+                    "description": "Bevorzugte Quelle: 'wikipedia', 'fandom', 'arch', oder 'auto'",
+                    "enum": ["wikipedia", "fandom", "arch", "auto"]
+                }
+            },
+            "required": ["query"],
+        },
+    },
 ]
 
 
@@ -277,6 +309,21 @@ async def execute_tool(name: str, args: dict) -> str:
         elif name == "add_quick_note":
             from quick_notes import add_quick_note
             return await add_quick_note(args.get("note_text", ""), config)
+
+        elif name == "search_wiki":
+            try:
+                from wiki_tools import search_wiki
+                result = await search_wiki(
+                    args.get("query", ""),
+                    args.get("wiki_source", "auto"),
+                    config
+                )
+                if "error" in result:
+                    return f"Sir, {result['error']}. {result.get('fallback_suggestion', '')}"
+                source_info = f" (Quelle: {result['source']})" if not result.get('from_cache') else ""
+                return f"{result['title']}{source_info}:\n{result['extract']}"
+            except Exception as wiki_err:
+                return f"Sir, die Wiki-Suche ist momentan nicht verfügbar: {wiki_err}"
 
         # MCP tools (prefixed with server name)
         elif mcp_client.is_mcp_tool(name):
@@ -367,8 +414,17 @@ async def ws_endpoint(browser_ws: WebSocket):
                                     }]
                                 }
                             }))
-                except Exception:
-                    pass
+                        elif msg.get("type") == "turn_complete_request":
+                            # 3 seconds of silence detected - signal turn complete
+                            await gemini_ws.send(json.dumps({
+                                "client_content": {
+                                    "turn_complete": True
+                                }
+                            }))
+                            print("[vad] 3s silence detected, triggering response", flush=True)
+                except Exception as e:
+                    if "disconnect message" not in str(e).lower():
+                        print(f"[ws] browser_to_gemini error: {e}", flush=True)
 
             # ── Gemini → browser ──────────────────────────────────────────
             async def gemini_to_browser():
@@ -407,8 +463,9 @@ async def ws_endpoint(browser_ws: WebSocket):
                                     "function_responses": responses
                                 }
                             }))
-                except Exception:
-                    pass
+                except Exception as e:
+                    if "disconnect message" not in str(e).lower():
+                        print(f"[ws] gemini_to_browser error: {e}", flush=True)
 
             t1 = asyncio.create_task(browser_to_gemini())
             t2 = asyncio.create_task(gemini_to_browser())
@@ -418,6 +475,9 @@ async def ws_endpoint(browser_ws: WebSocket):
             for t in pending:
                 t.cancel()
 
+    except asyncio.CancelledError:
+        # Normal when connection closes
+        pass
     except WebSocketDisconnect:
         print(f"[ws] Client {cid} getrennt", flush=True)
     except Exception as e:
@@ -429,17 +489,10 @@ async def ws_endpoint(browser_ws: WebSocket):
 
 
 # ── Static & Entry ───────────────────────────────────────────────────────
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 @app.get("/")
 async def index():
     return FileResponse("frontend/index.html")
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize MCP servers on startup."""
-    await initialize_servers()
 
 
 if __name__ == "__main__":
@@ -450,7 +503,7 @@ if __name__ == "__main__":
     print(f"  Nutzer : {USER_NAME} ({USER_ADDRESS})")
     print(f"  Stadt  : {CITY}")
     print(f"  Stimme : {JARVIS_VOICE}")
-    print(f"  Modell : gemini-2.5-flash-native-audio-preview-12-2025")
+    print(f"  Modell : gemini-2.5-flash-native-audio-preview-09-2025")
     print(f"  Kein ElevenLabs benoetigt!")
     print(f"{'='*58}\n")
     uvicorn.run(app, host="127.0.0.1", port=8340, log_level="warning")

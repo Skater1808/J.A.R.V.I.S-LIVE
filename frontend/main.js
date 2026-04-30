@@ -5,6 +5,14 @@ const orb      = document.getElementById('orb');
 const statusEl = document.getElementById('status');
 const transcEl = document.getElementById('transcript');
 
+// ── Click Simulation ────────────────────────────────────────────────────
+function simuliereKlickAnPosition(x, y) {
+    const el = document.elementFromPoint(x, y);
+    if (el) {
+        el.click();
+    }
+}
+
 // ── State ──────────────────────────────────────────────────────────────
 let ws;
 let micActive    = false;
@@ -15,8 +23,15 @@ let micStream    = null;
 let nextPlayTime = 0;      // Scheduled playback cursor
 let jarvisTalking = false;
 
+// ── Voice Activity Detection ────────────────────────────────────────────
+let lastVoiceTime = 0;
+let silenceTimer  = null;
+const SILENCE_THRESHOLD = 0.001;  // Energy threshold for voice detection (lower = more sensitive)
+const SILENCE_DURATION  = 3000;   // 3 seconds of silence triggers response
+let hasSpokenInTurn = false;        // Track if user spoke in current turn
+
 // ── AudioWorklet (inline blob) ─────────────────────────────────────────
-// Runs in the audio thread; converts float32 → int16 and posts chunks.
+// Runs in the audio thread; converts float32 → int16 and posts chunks + energy.
 const WORKLET_CODE = `
 class CaptureProcessor extends AudioWorkletProcessor {
   constructor () {
@@ -27,7 +42,15 @@ class CaptureProcessor extends AudioWorkletProcessor {
   process (inputs) {
     const ch = inputs[0] && inputs[0][0];
     if (!ch) return true;
-    for (let i = 0; i < ch.length; i++) this._buf.push(ch[i]);
+    
+    // Calculate energy for VAD
+    let energy = 0;
+    for (let i = 0; i < ch.length; i++) {
+      energy += ch[i] * ch[i];
+      this._buf.push(ch[i]);
+    }
+    energy = energy / ch.length;
+    
     while (this._buf.length >= this._chunkSize) {
       const slice = this._buf.splice(0, this._chunkSize);
       const pcm   = new Int16Array(slice.length);
@@ -35,7 +58,8 @@ class CaptureProcessor extends AudioWorkletProcessor {
         const clamped = Math.max(-1, Math.min(1, slice[i]));
         pcm[i] = clamped < 0 ? clamped * 32768 : clamped * 32767;
       }
-      this.port.postMessage(pcm.buffer, [pcm.buffer]);
+      // Send both PCM data and energy
+      this.port.postMessage({pcm: pcm.buffer, energy: energy}, [pcm.buffer]);
     }
     return true;
   }
@@ -68,14 +92,9 @@ function ab2b64(ab) {
 function scheduleChunk(b64Data) {
     // Create audio context on first chunk if needed (requires user gesture)
     if (!audioCtxOut) {
-        try {
-            audioCtxOut = new AudioContext({ sampleRate: 24000 });
-            console.log('[audio] Created output context on first chunk');
-        } catch (e) {
-            console.error('[audio] Cannot create audio context - user must click orb first');
-            status('Klicke den Orb um Audio zu aktivieren');
-            return;
-        }
+        console.error('[audio] Cannot play audio - no audio context! User must click orb first to enable audio.');
+        status('🔊 Klicke den Orb zuerst, um Audio zu aktivieren');
+        return;
     }
     if (audioCtxOut.state === 'suspended') {
         console.log('[audio] Resuming suspended context...');
@@ -109,6 +128,16 @@ function scheduleChunk(b64Data) {
 
     jarvisTalking = true;
     setOrb('speaking');
+
+    // Simulate click at position 160, 160 when Jarvis starts speaking
+    simuliereKlickAnPosition(160, 160);
+    console.log('[click] Simulated click at 160, 160');
+
+    // Stop microphone when Jarvis speaks to prevent echo
+    if (micActive) {
+        stopMic();
+        console.log('[mic] Auto-stopped because Jarvis is speaking');
+    }
 }
 
 // ── Mic capture ───────────────────────────────────────────────────────────
@@ -144,9 +173,53 @@ async function startMic() {
 
     workletNode.port.onmessage = (e) => {
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        
+        const { pcm, energy } = e.data;
+        
+        // Voice Activity Detection
+        const hasVoice = energy > SILENCE_THRESHOLD;
+        if (hasVoice) {
+            lastVoiceTime = Date.now();
+            if (!hasSpokenInTurn) {
+                console.log('[vad] Voice detected');
+                hasSpokenInTurn = true;
+            }
+            // Clear any pending silence timer
+            if (silenceTimer) {
+                clearTimeout(silenceTimer);
+                silenceTimer = null;
+            }
+        }
+        
+        // Check if we should trigger turn complete after silence
+        if (hasSpokenInTurn && !silenceTimer && !jarvisTalking) {
+            const timeSinceVoice = Date.now() - lastVoiceTime;
+            if (timeSinceVoice >= SILENCE_DURATION) {
+                // 3s silence detected - stop mic like clicking orb
+                console.log('[vad] 3s silence - stopping mic');
+                status('⏱️ 3s Stille – Mikrofon pausiert');
+                stopMic();
+                setOrb('idle');
+                hasSpokenInTurn = false;
+            } else {
+                // Set timer for remaining time
+                const remaining = SILENCE_DURATION - timeSinceVoice;
+                silenceTimer = setTimeout(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN && !jarvisTalking && hasSpokenInTurn) {
+                        console.log('[vad] Timer fired - stopping mic');
+                        status('⏱️ 3s Stille – Mikrofon pausiert');
+                        stopMic();
+                        setOrb('idle');
+                        hasSpokenInTurn = false;
+                    }
+                    silenceTimer = null;
+                }, remaining);
+            }
+        }
+        
         // Don't send mic audio while Jarvis is still outputting to avoid echo
         if (jarvisTalking && nextPlayTime > audioCtxOut.currentTime + 0.2) return;
-        ws.send(JSON.stringify({ type: 'audio', data: ab2b64(e.data) }));
+        ws.send(JSON.stringify({ type: 'audio', data: ab2b64(pcm) }));
     };
 
     src.connect(workletNode);
@@ -167,6 +240,12 @@ function stopMic() {
     audioCtxIn?.close();
     audioCtxIn = null;
     micActive  = false;
+    // Clear silence detection timer
+    if (silenceTimer) {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+    }
+    hasSpokenInTurn = false;
 }
 
 // ── WebSocket ─────────────────────────────────────────────────────────────
@@ -193,6 +272,7 @@ function connect() {
                 setTimeout(() => {
                     if (nextPlayTime <= (audioCtxOut?.currentTime ?? 0) + 0.15) {
                         jarvisTalking = false;
+                        hasSpokenInTurn = false;  // Reset VAD for next turn
                         if (micActive) setOrb('listening');
                     }
                 }, 400);

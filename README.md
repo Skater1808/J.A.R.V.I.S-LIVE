@@ -5,8 +5,12 @@ Ein deutscher KI-Assistent mit nativer Sprachausgabe. Keine Text-zu-Sprache-Konv
 ## Features
 
 - **Rein Audio-basiert**: Spracheingabe → Gemini Live API → Sprachausgabe
-- **Eingebaute Tools**: Websuche, Screenshots, URL-Öffnen, Nachrichten
+- **Eingebaute Tools**: Websuche, Screenshots, URL-Öffnen, Nachrichten, Wiki-Suche
 - **MCP Server Unterstützung**: Dateisystem, Zeit, Datenbanken und mehr via Model Context Protocol
+- **Memory System**: Langzeitgedächtnis für Fakten und Gesprächskontext via SQLite
+- **Quick Notes**: Sprachgesteuerte Notizen mit Kategorien
+- **Wiki Integration**: Wikipedia, Fandom & Arch Wiki mit 24h Cache
+- **Voice Activity Detection**: Automatische Antwort nach 3 Sekunden Stille
 - **Deutsche Persönlichkeit**: Charmant, witzig, eloquent mit britischem Understatement
 - **Multi-Modal**: Unterstützt Audio + Vision (Screenshots)
 - **Echtzeit**: WebSocket-basierte Kommunikation mit Gemini Live
@@ -38,7 +42,8 @@ cp config.example.json config.json
   "user_name": "Dein Name",
   "user_address": "Sir",
   "city": "Bremen",
-  "jarvis_voice": "Charon"
+  "jarvis_voice": "Charon",
+  "quick_notes_path": "C:\\Users\\DeinName\\Documents\\JarvisQuickNotes.md"
 }
 ```
 
@@ -132,9 +137,31 @@ Jarvis unterstützt MCP (Model Context Protocol) Server für erweiterte Funktion
 ### Eingebaute Tools
 
 - `search_web(query)` — Websuche via DuckDuckGo
+- `search_wiki(query, source)` — Wikipedia/Fandom/Arch Wiki Suche
 - `open_url(url)` — URL im Browser öffnen
 - `take_screenshot()` — Screenshot + Vision-Analyse
 - `get_news()` — Aktuelle Nachrichten
+- `remember_fact(category, fact)` — Fakt im Langzeitgedächtnis speichern
+- `add_quick_note(note)` — Schnelle Notiz speichern
+
+### Memory Features
+
+Jarvis merkt sich Dinge automatisch:
+- **Fakten**: "Merke dir: Ich bin Vegetarier" → Wird bei Essensvorschlägen berücksichtigt
+- **Kontext**: Letzte Gespräche werden einbezogen
+- **Datenbank**: `jarvis_memory.db` (SQLite)
+
+### Wiki Integration
+
+- **Wikipedia**: Allgemeines Wissen
+- **Fandom**: Gaming, Filme, Serien
+- **Arch Wiki**: Linux/Technik
+- **Cache**: 24h SQLite-Cache für schnelle Antworten
+
+### Voice Activity Detection (VAD)
+
+- **Automatische Erkennung**: Jarvis antwortet nach 3 Sekunden Stille
+- **Echo-Prevention**: Mikrofon stoppt automatisch wenn Jarvis spricht
 
 ### MCP Tools
 
@@ -149,19 +176,25 @@ MCP Server-Tools werden automatisch mit Präfix verfügbar:
 ### Projektstruktur
 
 ```
-nummer 4/
+J.A.R.V.I.S-LIVE/
 ├── server.py              # Hauptserver
 ├── mcp_client.py          # MCP Client Manager
 ├── browser_tools.py       # Browser-Automation
 ├── screen_capture.py      # Screenshot-Funktionen
+├── memory.py              # Gedächtnis-System (SQLite)
+├── wiki_tools.py          # Wikipedia/Fandom/Arch Integration
+├── quick_notes.py         # Schnelle Notizen
 ├── config.json            # Konfiguration
 ├── config.example.json    # Beispiel-Konfiguration
 ├── mcp_servers.json       # Aktive MCP Server
 ├── mcp_servers.example.json  # Beispiel-Server
 ├── requirements.txt       # Python-Abhängigkeiten
+├── setup_jarvis.py        # Setup Wizard
+├── jarvis_memory.db       # Gedächtnis-Datenbank (automatisch erstellt)
+├── jarvis_wiki_cache.db   # Wiki-Cache (automatisch erstellt)
 └── frontend/
     ├── index.html         # UI
-    ├── main.js            # Audio-Logik
+    ├── main.js            # Audio-Logik + VAD
     └── style.css          # Styling
 ```
 
@@ -180,6 +213,8 @@ nummer 4/
 - **Orb klicken** vor dem Sprechen (Browser-Policy)
 - Konsole auf Fehler prüfen
 - `audioCtxOut` wird bei ersten Chunk erstellt
+- **VAD**: Mikrofon stoppt automatisch wenn Jarvis spricht (kein Echo)
+- **Wiederverbindung**: Einfach "Jarvis" sagen oder Orb klicken
 
 ### MCP Server Fehler
 
