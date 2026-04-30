@@ -17,7 +17,28 @@ Ein deutscher KI-Assistent mit nativer Sprachausgabe. Keine Text-zu-Sprache-Konv
 
 ## Schnellstart
 
-### 1. Installation
+### 1. Repository klonen
+
+```bash
+# Repo klonen
+git clone https://github.com/Skater1808/jarvis-live.git
+
+# In das Verzeichnis wechseln
+cd jarvis-live
+```
+
+### 2. Setup Wizard ausführen
+
+```bash
+# Setup startet automatisch:
+# - Python & Chrome prüfen
+# - Abhängigkeiten installieren
+# - API-Key eintragen
+# - Persönliche Einstellungen
+python setup_jarvis.py
+```
+
+**Oder manuell konfigurieren:**
 
 ```bash
 # Abhängigkeiten installieren
@@ -25,37 +46,19 @@ pip install -r requirements.txt
 
 # Playwright Browser installieren
 playwright install
-```
 
-### 2. Konfiguration
-
-```bash
-# Beispiel-Konfiguration kopieren und anpassen
+# Config erstellen
 cp config.example.json config.json
+# config.json anpassen...
 ```
 
-`config.json` anpassen:
-
-```json
-{
-  "gemini_api_key": "DEIN_GEMINI_API_KEY",
-  "user_name": "Dein Name",
-  "user_address": "Sir",
-  "city": "Bremen",
-  "jarvis_voice": "Charon",
-  "quick_notes_path": "C:\\Users\\DeinName\\Documents\\JarvisQuickNotes.md"
-}
-```
-
-**Verfügbare Stimmen**: `Puck` | `Charon` | `Kore` | `Fenrir` | `Aoede`
-
-### 3. Start
+### 3. Server starten
 
 ```bash
 python server.py
 ```
 
-Dann öffne: http://localhost:8340
+Dann öffne: **http://localhost:8340**
 
 **Wichtig**: Auf den Orb klicken, um Audio zu aktivieren (Browser-Policy).
 
@@ -119,10 +122,10 @@ Jarvis unterstützt MCP (Model Context Protocol) Server für erweiterte Funktion
        │                                  │
        │ WebSocket                        │ WebSocket
        │                                  │
-┌──────▼────────┐                  ┌───────▼─────────┐
-│  AudioWorklet │                  │  Gemini Live    │
-│(Mic/Playback) │                  │  API (Google)   │
-└───────────────┘                  └─────────────────┘
+┌──────▼─────────┐                  ┌───────▼─────────┐
+│  AudioWorklet  │                  │   Gemini Live   │
+│ (Mic/Playback) │                  │   API (Google)  │
+└────────────────┘                  └─────────────────┘
 ```
 
 ### Komponenten
@@ -176,7 +179,7 @@ MCP Server-Tools werden automatisch mit Präfix verfügbar:
 ### Projektstruktur
 
 ```
-J.A.R.V.I.S-LIVE/
+jarvis-live/
 ├── server.py              # Hauptserver
 ├── mcp_client.py          # MCP Client Manager
 ├── browser_tools.py       # Browser-Automation
@@ -230,7 +233,7 @@ J.A.R.V.I.S-LIVE/
 
 Built by [Julian](https://skool.com/ki-automatisierung) with [Claude Code](https://claude.ai/code).
 
-Modified by [Skater1808](https://github.com/Skater1808) [with Kimi K2.5 in Windsurf]((https://windsurf.com))
+Modified by [Skater1808](https://github.com/Skater1808) with[ Kimi K2.5 in Windsurf](https://windsurf.com)
 
 Inspired by Iron Man's J.A.R.V.I.S. — *"At your service, Sir."*
 
