@@ -9,6 +9,7 @@ mcp_servers.json
 *.db-journal
 *.sqlite
 *.sqlite3
+jarvis_memory.db
 
 # ── Python ────────────────────────────────────────────────────────────────
 __pycache__/
