@@ -92,8 +92,8 @@ function ab2b64(ab) {
 function scheduleChunk(b64Data) {
     // Create audio context on first chunk if needed (requires user gesture)
     if (!audioCtxOut) {
-        console.error('[audio] Cannot play audio - no audio context! User must tap orb first to enable audio.');
-        status('🔊 Tippe den Orb zuerst, um Audio zu aktivieren');
+        console.error('[audio] Cannot play audio - no audio context! User must click orb first to enable audio.');
+        status('🔊 Klicke den Orb zuerst, um Audio zu aktivieren');
         return;
     }
     if (audioCtxOut.state === 'suspended') {
@@ -144,21 +144,14 @@ function scheduleChunk(b64Data) {
 async function startMic() {
     if (micActive) return;
 
-    // iOS: AudioContext mit webkit prefix für ältere iOS Versionen
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    
-    // Resume / create playback context (requires user gesture on iOS)
+    // Resume / create playback context (requires user gesture)
     if (!audioCtxOut) {
-        audioCtxOut = new AudioContextClass({ sampleRate: 24000 });
+        audioCtxOut = new AudioContext({ sampleRate: 24000 });
     }
-    
-    // iOS: AudioContext muss explizit resumed werden nach User-Interaktion
-    if (audioCtxOut.state === 'suspended') {
-        await audioCtxOut.resume();
-    }
+    if (audioCtxOut.state === 'suspended') await audioCtxOut.resume();
 
     // Capture context at 16 kHz
-    audioCtxIn  = new AudioContextClass({ sampleRate: 16000 });
+    audioCtxIn  = new AudioContext({ sampleRate: 16000 });
 
     // Build inline worklet
     const blob  = new Blob([WORKLET_CODE], { type: 'application/javascript' });
@@ -313,13 +306,7 @@ function connect() {
 }
 
 // ── Orb click — toggle mic ────────────────────────────────────────────────
-// iOS: Touch-Events sind schneller als Click
-async function handleOrbInteraction(e) {
-    if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
+orb.addEventListener('click', async () => {
     if (!micActive) {
         try {
             status('Mikrofon wird gestartet...');
@@ -331,15 +318,9 @@ async function handleOrbInteraction(e) {
     } else {
         stopMic();
         setOrb('idle');
-        status('Pausiert – tippe zum Fortsetzen');
+        status('Pausiert – klicke zum Fortsetzen');
     }
-}
-
-// Click für Desktop
-orb.addEventListener('click', handleOrbInteraction);
-
-// Touch-Events für iOS (schneller + prevent double-tap zoom)
-orb.addEventListener('touchstart', handleOrbInteraction, { passive: false });
+});
 
 // ── UI helpers ────────────────────────────────────────────────────────────
 function setOrb(state)  { orb.className = state; }
