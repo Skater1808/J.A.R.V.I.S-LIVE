@@ -133,3 +133,72 @@ body {
     color: #1a2a3a;
     margin-top: 28px;
 }
+
+/* === iOS OPTIMIERUNGEN === */
+
+/* Safe-Area für iPhone Notch/Dynamic Island */
+body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+/* Touch-Optimierungen */
+* {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+#orb-container {
+    -webkit-touch-callout: none;
+    user-select: none;
+}
+
+/* Größere Touch-Targets für mobile */
+@media (pointer: coarse) {
+    #orb {
+        width: 180px;
+        height: 180px;
+    }
+    
+    #orb-container {
+        padding: 30px;
+    }
+}
+
+/* iPhone-spezifische Anpassungen */
+@media only screen 
+  and (min-device-width: 375px) 
+  and (max-device-width: 430px) {
+    
+    #orb {
+        width: 150px;
+        height: 150px;
+    }
+    
+    #header {
+        font-size: 10px;
+        letter-spacing: 4px;
+        margin-bottom: 30px;
+    }
+    
+    #status {
+        font-size: 14px;
+    }
+    
+    #transcript {
+        max-height: 200px;
+    }
+    
+    #hint {
+        font-size: 9px;
+        margin-top: 20px;
+    }
+}
+
+/* Verhindert Bounce-Effekt auf iOS */
+html, body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+}
