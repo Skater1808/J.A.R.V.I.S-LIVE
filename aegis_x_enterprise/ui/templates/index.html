@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aegis-X Enterprise &middot; Control Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .console-font { font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; }
+    .log-enter { animation: fadeIn .18s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    #console::-webkit-scrollbar { width: 8px; }
+    #console::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
+  </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-200">
+  <div class="max-w-7xl mx-auto p-4 lg:p-6 h-full flex flex-col gap-4">
+
+    <!-- Header -->
+    <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+          <span class="inline-block w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+          Aegis-X <span class="text-emerald-400">Enterprise</span>
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Provider: <span class="text-slate-300">{{ provider }}</span> &middot;
+          Model: <span class="text-slate-300">{{ model }}</span> &middot;
+          Max iterations: <span class="text-slate-300">{{ max_iterations }}</span>
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs uppercase tracking-wider text-slate-500">State</span>
+        <span id="state-badge" class="px-3 py-1 rounded-full text-sm font-semibold bg-slate-800 text-slate-300">IDLE</span>
+        <span id="ws-dot" class="w-2.5 h-2.5 rounded-full bg-rose-500" title="WebSocket disconnected"></span>
+      </div>
+    </header>
+
+    <!-- Controls -->
+    <section class="flex flex-col sm:flex-row gap-3">
+      <input id="goal-input" type="text" placeholder="Describe the goal for the agent…"
+             class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500 console-font" />
+      <div class="flex gap-2">
+        <button id="btn-start"
+                class="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition">
+          ▶ Start
+        </button>
+        <button id="btn-pause"
+                class="px-4 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm transition">
+          ⏸ Pause
+        </button>
+        <button id="btn-stop"
+                class="px-4 py-2.5 rounded-lg bg-rose-700 hover:bg-rose-600 text-white font-semibold text-sm transition">
+          ⏹ Not-Aus
+        </button>
+      </div>
+    </section>
+
+    <!-- Main grid -->
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
+
+      <!-- Task list -->
+      <aside class="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col min-h-0">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">Task Tree</h2>
+        <div class="flex items-center gap-2 mb-3 text-xs text-slate-500">
+          <span>Iteration</span>
+          <span id="iteration-count" class="font-mono text-slate-300">0</span>
+          <span>/ {{ max_iterations }}</span>
+        </div>
+        <ul id="task-list" class="space-y-2 overflow-y-auto flex-1">
+          <li class="text-slate-600 text-sm italic">No tasks yet. Start a run to generate a plan.</li>
+        </ul>
+      </aside>
+
+      <!-- Live console -->
+      <section class="lg:col-span-2 bg-black border border-slate-800 rounded-xl flex flex-col min-h-0">
+        <div class="flex items-center justify-between px-4 py-2 border-b border-slate-800">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400">Live Console</h2>
+          <button id="btn-clear" class="text-xs text-slate-500 hover:text-slate-300">clear</button>
+        </div>
+        <div id="console" class="flex-1 overflow-y-auto p-4 console-font text-[13px] leading-relaxed text-slate-300"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const consoleEl = document.getElementById("console");
+    const taskListEl = document.getElementById("task-list");
+    const stateBadge = document.getElementById("state-badge");
+    const iterationEl = document.getElementById("iteration-count");
+    const wsDot = document.getElementById("ws-dot");
+
+    const STATE_COLORS = {
+      IDLE: "bg-slate-800 text-slate-300",
+      PLANNING: "bg-sky-800 text-sky-200",
+      EXECUTING: "bg-indigo-800 text-indigo-200",
+      TESTING: "bg-violet-800 text-violet-200",
+      HEALING: "bg-amber-800 text-amber-100",
+      COMPLETED: "bg-emerald-700 text-emerald-100",
+      FAILED: "bg-rose-800 text-rose-100",
+    };
+    const TYPE_COLORS = {
+      status: "text-sky-400",
+      log: "text-slate-300",
+      task_update: "text-violet-400",
+      error: "text-rose-400",
+    };
+    const TASK_BADGE = {
+      PENDING: "text-slate-500",
+      RUNNING: "text-amber-400",
+      DONE: "text-emerald-400",
+      FAILED: "text-rose-400",
+    };
+    const TASK_ICON = { PENDING: "○", RUNNING: "◌", DONE: "✓", FAILED: "✗" };
+
+    function appendLog(type, text) {
+      const line = document.createElement("div");
+      line.className = "log-enter whitespace-pre-wrap break-words";
+      const ts = new Date().toLocaleTimeString();
+      const color = TYPE_COLORS[type] || "text-slate-300";
+      line.innerHTML =
+        `<span class="text-slate-600">[${ts}]</span> ` +
+        `<span class="${color} font-semibold">${type.toUpperCase()}</span> ` +
+        `<span>${escapeHtml(text)}</span>`;
+      consoleEl.appendChild(line);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function setState(state, iteration) {
+      stateBadge.textContent = state;
+      stateBadge.className = "px-3 py-1 rounded-full text-sm font-semibold " + (STATE_COLORS[state] || STATE_COLORS.IDLE);
+      if (typeof iteration === "number") iterationEl.textContent = iteration;
+    }
+
+    function renderTasks(tasks) {
+      if (!tasks || tasks.length === 0) return;
+      taskListEl.innerHTML = "";
+      tasks.forEach((t) => {
+        const li = document.createElement("li");
+        li.className = "flex items-start gap-2 text-sm bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2";
+        const badge = TASK_BADGE[t.status] || "text-slate-500";
+        li.innerHTML =
+          `<span class="${badge} font-bold mt-0.5">${TASK_ICON[t.status] || "○"}</span>` +
+          `<div class="flex-1"><div class="text-slate-200">${escapeHtml(t.title)}</div>` +
+          `<div class="text-[11px] ${badge} uppercase tracking-wide">${t.status}</div>` +
+          (t.error_log && t.error_log.length
+            ? `<div class="text-[11px] text-rose-400 mt-1">${escapeHtml(t.error_log[t.error_log.length - 1])}</div>`
+            : "") +
+          `</div>`;
+        taskListEl.appendChild(li);
+      });
+    }
+
+    function handleEvent(evt) {
+      const { type, payload } = evt;
+      if (type === "status") {
+        setState(payload.state, payload.iteration);
+        appendLog("status", `state → ${payload.state}`);
+      } else if (type === "task_update") {
+        renderTasks(payload.tasks);
+      } else if (type === "error") {
+        appendLog("error", `${payload.source || "?"}: ${payload.message || ""}`);
+      } else {
+        appendLog("log", `${payload.source ? payload.source + ": " : ""}${payload.message || JSON.stringify(payload)}`);
+      }
+    }
+
+    // ---- WebSocket wiring ------------------------------------------------
+    let ws;
+    function connect() {
+      const proto = location.protocol === "https:" ? "wss" : "ws";
+      ws = new WebSocket(`${proto}://${location.host}/ws/logs`);
+      ws.onopen = () => { wsDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400"; wsDot.title = "WebSocket connected"; };
+      ws.onclose = () => { wsDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500"; setTimeout(connect, 1500); };
+      ws.onmessage = (e) => { try { handleEvent(JSON.parse(e.data)); } catch (_) {} };
+    }
+    connect();
+
+    // ---- Controls --------------------------------------------------------
+    async function post(path, body) {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body || {}),
+      });
+      return res.json().catch(() => ({}));
+    }
+
+    document.getElementById("btn-start").onclick = async () => {
+      const goal = document.getElementById("goal-input").value.trim();
+      if (!goal) { appendLog("error", "Please enter a goal first."); return; }
+      appendLog("log", `Start requested: ${goal}`);
+      const r = await post("/start", { goal });
+      if (!r.ok) appendLog("error", r.error || "Failed to start.");
+    };
+    document.getElementById("btn-pause").onclick = async () => {
+      const r = await post("/pause");
+      appendLog("log", `Pause toggled → ${r.status || "?"}`);
+    };
+    document.getElementById("btn-stop").onclick = async () => {
+      const r = await post("/stop");
+      appendLog("error", `Kill-switch → ${r.status || "?"}`);
+    };
+    document.getElementById("btn-clear").onclick = () => { consoleEl.innerHTML = ""; };
+    document.getElementById("goal-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("btn-start").click();
+    });
+
+    appendLog("log", "Dashboard ready. Connecting to agent telemetry…");
+  </script>
+</body>
+</html>

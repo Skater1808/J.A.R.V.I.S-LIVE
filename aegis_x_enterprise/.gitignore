@@ -1,0 +1,19 @@
+# Secrets / generated config
+.env
+
+# Runtime state & persistence
+agent/agent_state.json
+aegis_memory.db
+*.db
+
+# Agent sandbox contents (keep the directory, ignore its contents)
+workspace/*
+!workspace/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
